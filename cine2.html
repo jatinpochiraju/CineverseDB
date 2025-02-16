@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CineVerseDB - Movie Database</title>
+    <style>
+        :root {
+            --primary: #1892f5;
+            --dark: #0a0a0a;
+            --gray: #202020;
+            --text: #ffffff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: var(--dark);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        header {
+            background: linear-gradient(to bottom, #000000dd, #00000000);
+            padding: 1.5rem;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary);
+            text-shadow: 0 0 10px rgba(245, 197, 24, 0.5);
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .search-bar {
+            padding: 0.8rem 1.2rem;
+            width: 300px;
+            border-radius: 25px;
+            border: none;
+            background: var(--gray);
+            color: white;
+            transition: all 0.3s;
+        }
+
+        .search-bar:focus {
+            outline: 2px solid var(--primary);
+            box-shadow: 0 0 15px rgba(245, 197, 24, 0.3);
+        }
+
+        .sort-filter {
+            padding: 0.8rem;
+            border-radius: 25px;
+            background: var(--gray);
+            color: white;
+            border: none;
+        }
+
+        .hero {
+            height: 70vh;
+            background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)),
+                        url('https://source.unsplash.com/random/1920x1080/?movie-theater');
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            align-items: center;
+            padding: 2rem;
+            margin-top: 80px;
+        }
+
+        .hero-content {
+            max-width: 600px;
+        }
+
+        .hero-title {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: var(--primary);
+        }
+
+        .container {
+            padding: 2rem;
+            margin-top: 2rem;
+        }
+
+        .movie-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 2rem;
+            padding: 1rem 0;
+        }
+
+        .movie-card {
+            background: var(--gray);
+            border-radius: 10px;
+            overflow: hidden;
+            transition: transform 0.3s, box-shadow 0.3s;
+            position: relative;
+        }
+
+        .movie-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+        }
+
+        .movie-poster {
+            width: 100%;
+            height: 330px;
+            object-fit: cover;
+            border-bottom: 3px solid var(--primary);
+        }
+
+        .movie-info {
+            padding: 1rem;
+        }
+
+        .movie-title {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .movie-rating {
+            color: var(--primary);
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .movie-year {
+            color: #888;
+            font-size: 0.9rem;
+        }
+
+        .movie-actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 1rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: var(--dark);
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+
+        footer {
+            background: var(--gray);
+            padding: 2rem;
+            margin-top: 3rem;
+            text-align: center;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 2000;
+        }
+
+        .modal-content {
+            background: var(--gray);
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+            border-radius: 10px;
+            position: relative;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        @media (max-width: 768px) {
+            .movie-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            }
+            
+            .hero-title {
+                font-size: 2rem;
+            }
+            
+            .search-bar {
+                width: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">CineVerseDB</div>
+        <div class="controls">
+            <select class="sort-filter" id="sort">
+                <option value="rating">Sort by Rating</option>
+                <option value="title">Sort by Title</option>
+                <option value="year">Sort by Year</option>
+            </select>
+            <input type="text" class="search-bar" placeholder="Search movies..." id="search">
+        </div>
+    </header>
+
+    <div class="hero">
+        <div class="hero-content">
+            <h1 class="hero-title">Welcome to CineverseDB</h1>
+            <p class="hero-text">Discover Your Next Favorite Movie and create watchlists.</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="movie-grid" id="movieContainer"></div>
+    </div>
+
+    <div class="modal" id="movieModal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal()">&times;</span>
+            <div id="modalContent"></div>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2025 CineVerseDB. All rights reserved.</p>
+        <div class="footer-links">
+            <a href="#">About</a> | 
+            <a href="#">Privacy Policy</a> | 
+            <a href="#">Contact</a>
+        </div>
+    </footer>
+
+    <script>
+        const movies = [
+            // Previous movies plus new additions
+            {
+                title: "The Shawshank Redemption",
+                year: 1994,
+                rating: 9.3,
+                genre: "Drama",
+                description: "Two imprisoned men bond over a number of years...",
+                image: "https://m.media-amazon.com/images/M/MV5BNDE3ODcxYzMtY2YzZC00NmNlLWJiNDMtZDViZWM2MzIxZDYwXkEyXkFqcGdeQXVyNjAwNDUxODI@._V1_.jpg",
+                director: "Frank Darabont",
+                cast: ["Tim Robbins", "Morgan Freeman"]
+            },
+            {
+                title: "Spider-Man: Across the Spider-Verse",
+                year: 2023,
+                rating: 8.7,
+                genre: "Animation, Action",
+                description: "Miles Morales catapults across the Multiverse...",
+                image: "https://m.media-amazon.com/images/M/MV5BMzI0NmVkMjEtYmY4MS00ZDMxLTlkZmEtMzU4MDQxYTMzMjU2XkEyXkFqcGdeQXVyMzQ0MzA0NTM@._V1_.jpg",
+                director: "Joaquim Dos Santos",
+                cast: ["Shameik Moore", "Hailee Steinfeld"]
+            },
+            {
+                title: "Mission: Impossible – Dead Reckoning Part One",
+                year: 2023,
+                rating: 7.7,
+                genre: "Adventure, Action",
+                description: "Ethan Hunt and the IMF team must track down a terrifying new weapon that threatens all of humanity if it falls into the wrong hands. With control of the future and the fate of the world at stake, a deadly race around the globe begins.",
+                image: "https://encrypted-tbn3.gstatic.com/images?q=tbn:ANd9GcRVqFaAKqKH4EYyEjQi6ObYxxupULtBK2QbWr9kUX9jH27OL8cb",
+                director: "Christopher Mcquarrie",
+                cast: ["Ethan Hunt", "Simon Pegg"]
+            },
+             {
+                title: "Dr. No",
+                year: 1962,
+                rating: 7.2,
+                genre: "Action, Adventure, Thriller",
+                description: "James Bond investigates the mysterious disappearance of a fellow agent in Jamaica.",
+                image: "https://m.media-amazon.com/images/M/MV5BM2Q0ODAxYTgtN2E3My00Yzc2LWI2NDUtOGU0YzgzYzM4OWMwXkEyXkFqcGc@._V1_.jpg",
+                director: "Terence Young",
+                cast: ["Sean Connery", "Ursula Andress", "Joseph Wiseman"]
+            },
+            {
+                title: "From Russia with Love",
+                year: 1963,
+                rating: 7.4,
+                genre: "Action, Adventure, Thriller",
+                description: "James Bond is sent to assist in the defection of a Soviet clerk, unaware it's a trap.",
+                image: "https://m.media-amazon.com/images/M/MV5BZGM1ZTk0ZjAtOGFjMS00YmFiLWFkZmQtYzA4Mjk4NDcxNzQwXkEyXkFqcGc@._V1_.jpg",
+                director: "Terence Young",
+                cast: ["Sean Connery", "Robert Shaw", "Lotte Lenya"]
+            },
+            {
+                title: "Goldfinger",
+                year: 1964,
+                rating: 7.7,
+                genre: "Action, Adventure, Thriller",
+                description: "James Bond uncovers a gold smuggling scheme and faces a deadly villain.",
+                image: "https://images.justwatch.com/poster/302509564/s718/goldfinger.jpg",
+                director: "Guy Hamilton",
+                cast: ["Sean Connery", "Gert Fröbe", "Honor Blackman"]
+            },
+            {
+                title: "Casino Royale",
+                year: 2006,
+                rating: 8.0,
+                genre: "Action, Adventure, Thriller",
+                description: "James Bond earns his 00 status and faces a terrorist financier in a high-stakes poker game.",
+                image: "https://resizing.flixster.com/-XZAfHZM39UwaGJIFWKAE8fS0ak=/v3/t/assets/p159167_p_v8_aw.jpg",
+                director: "Martin Campbell",
+                cast: ["Daniel Craig", "Eva Green", "Mads Mikkelsen"]
+            },
+            {
+                title: "Skyfall",
+                year: 2012,
+                rating: 7.8,
+                genre: "Action, Adventure, Thriller",
+                description: "James Bond's loyalty to M is tested as MI6 comes under attack.",
+                image: "https://m.media-amazon.com/images/M/MV5BNjAzMWNkODUtM2FlMi00NzgyLWJhMGUtMWEyNDYyZGFiN2RlXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg",
+                director: "Sam Mendes",
+                cast: ["Daniel Craig", "Javier Bardem", "Judi Dench"]
+            },
+             {
+                title: "Mission: Impossible – Rogue Nation",
+                year: 2015,
+                rating: 7.4,
+                genre: "Action, Adventure, Thriller",
+                description: "Ethan and his team take on their most impossible mission yet—eradicating the Syndicate, an international rogue organization as highly skilled as they are.",
+                image: "https://fiu-original.b-cdn.net/fontsinuse.com/use-images/81/81647/81647.jpeg?filename=mission_impossible__rogue_nation_ver15_xlg.jpg",
+                director: "Christopher McQuarrie",
+                cast: ["Tom Cruise", "Rebecca Ferguson", "Simon Pegg"]
+            },
+            {
+                title: "Mission: Impossible – Fallout",
+                year: 2018,
+                rating: 7.7,
+                genre: "Action, Adventure, Thriller",
+                description: "Ethan Hunt and his IMF team, along with some familiar allies, race against time after a mission gone wrong.",
+                image: "https://lh5.googleusercontent.com/proxy/exc5w7jGGlLdWooqT2EP2Gf4X8tjkdqBEDdiYERQIlBDcxaxXG0wElAs4uweR7jjeUOh-7WfG3fyeB0RBnGWagElf5t1p42h7PJaD9KP5kulq_iaDDFQHpw26XecUfWSBpkA8g",
+                director: "Christopher McQuarrie",
+                cast: ["Tom Cruise", "Henry Cavill", "Ving Rhames"]
+            },
+            {
+                title: "Mission: Impossible – Ghost Protocol",
+                year: 2011,
+                rating: 7.4,
+                genre: "Action, Adventure, Thriller",
+                description: "The IMF is shut down when it's implicated in the bombing of the Kremlin, causing Ethan Hunt and his new team to go rogue to clear their organization's name.",
+                image: "https://static.wikia.nocookie.net/missionimpossible/images/b/b5/Mission_impossible_ghost_protocol.jpg/revision/latest?cb=20230729221434",
+                director: "Brad Bird",
+                cast: ["Tom Cruise", "Jeremy Renner", "Simon Pegg"]
+            },
+            {
+                title: "Iron Man",
+                year: 2008,
+                rating: 7.9,
+                genre: "Action, Adventure, Sci-Fi",
+                description: "After being held captive in an Afghan cave, billionaire engineer Tony Stark creates a unique weaponized suit of armor to fight evil.",
+                image: "https://i.pinimg.com/736x/9f/bf/d3/9fbfd3709ca02fedd3b0588712c1ae77.jpg",
+                director: "Jon Favreau",
+                cast: ["Robert Downey Jr.", "Gwyneth Paltrow", "Jeff Bridges"]
+            },
+            {
+                title: "The Avengers",
+                year: 2012,
+                rating: 8.0,
+                genre: "Action, Adventure, Sci-Fi",
+                description: "Earth's mightiest heroes must come together and learn to fight as a team if they are to stop the mischievous Loki and his alien army.",
+                image: "https://resizing.flixster.com/-XZAfHZM39UwaGJIFWKAE8fS0ak=/v3/t/assets/p8815512_p_v8_ax.jpg",
+                director: "Joss Whedon",
+                cast: ["Robert Downey Jr.", "Chris Evans", "Mark Ruffalo"]
+            },
+            {
+                title: "Guardians of the Galaxy",
+                year: 2014,
+                rating: 8.1,
+                genre: "Action, Adventure, Comedy",
+                description: "A group of intergalactic criminals must pull together to stop a fanatical warrior with plans to purge the universe.",
+                image: "https://m.media-amazon.com/images/I/81lxKU40BvL.jpg",
+                director: "James Gunn",
+                cast: ["Chris Pratt", "Zoe Saldana", "Dave Bautista"]
+            },
+   {
+                title: "Black Panther",
+                year: 2018,
+                rating: 7.3,
+                genre: "Action, Adventure, Sci-Fi",
+                description: "T'Challa, heir to the hidden but advanced kingdom of Wakanda, must step forward to lead his people into a new future.",
+                image: "https://m.media-amazon.com/images/I/81dae9nZFBS.jpg",
+                director: "Ryan Coogler",
+                cast: ["Chadwick Boseman", "Michael B. Jordan", "Lupita Nyong'o"]
+            },
+            {
+                title: "Avengers: Endgame",
+                year: 2019,
+                rating: 8.4,
+                genre: "Action, Adventure, Drama",
+                description: "After the devastating events of Avengers: Infinity War, the universe is in ruins. The Avengers assemble once more to reverse Thanos' actions.",
+                image: "https://m.media-amazon.com/images/I/81nig-I3TDL._AC_UF894,1000_QL80_.jpg",
+                director: "Anthony Russo, Joe Russo",
+                cast: ["Robert Downey Jr.", "Chris Evans", "Scarlett Johansson"]
+            },
+             {
+                title: "Iron Man 2",
+                year: 2010,
+                rating: 7.0,
+                genre: "Action, Adventure, Sci-Fi",
+                description: "Tony Stark faces pressure from the government, the press, and the public to share his technology with the military.",
+                image: "https://image.tmdb.org/t/p/original/bMYuDvz2Zl0pNWIbt9GQqZt1CH.jpg",
+                director: "Jon Favreau",
+                cast: ["Robert Downey Jr.", "Gwyneth Paltrow", "Don Cheadle"]
+            },
+            {
+                title: "Iron Man 3",
+                year: 2013,
+                rating: 7.1,
+                genre: "Action, Adventure, Sci-Fi",
+                description: "When Tony Stark's world is torn apart by a formidable terrorist called the Mandarin, he starts an odyssey of rebuilding and retribution.",
+                image: "https://m.media-amazon.com/images/I/8159UW0-AEL.jpg",
+                director: "Shane Black",
+                cast: ["Robert Downey Jr.", "Guy Pearce", "Gwyneth Paltrow"]
+            },
+            {
+                title: "Captain America: The First Avenger",
+                year: 2011,
+                rating: 6.9,
+                genre: "Action, Adventure, Sci-Fi",
+                description: "Steve Rogers volunteers to participate in an experimental program that turns him into the Super Soldier known as Captain America.",
+                image: "https://resizing.flixster.com/DPxL1sG2snpcMbqGJc67YGTrjlM=/ems.cHJkLWVtcy1hc3NldHMvbW92aWVzL2JmZTdkNDA5LTA5NzktNGE3OC04ODE2LTJlOTBkYTA3MDY2NS5qcGc=",
+                director: "Joe Johnston",
+                cast: ["Chris Evans", "Hayley Atwell", "Sebastian Stan"]
+            },
+            {
+                title: "Captain America: The Winter Soldier",
+                year: 2014,
+                rating: 7.7,
+                genre: "Action, Adventure, Sci-Fi",
+                description: "Steve Rogers struggles to embrace his role in the modern world while battling a new threat from old history: the Soviet agent known as the Winter Soldier.",
+                image: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi4NnJTOsWljZbv1PrtJz-QXiSfiQFciAuiLIbV21cynKZdeuJgrBTdLlyBIdSfMuD9QxCronV1n9xVp7iQGpSDf54xE6wR35ZjIo8LPc-mRJW3NVLbnv50Vc88CM1OIXQUAhOj/s1600/Captain+America+The+Winter+Soldier+pop+art+poster+Nick+Fury+Black+WIdow+spies.jpg",
+                director: "Anthony Russo, Joe Russo",
+                cast: ["Chris Evans", "Scarlett Johansson", "Sebastian Stan"]
+            },
+            {
+                title: "Captain America: Civil War",
+                year: 2016,
+                rating: 7.8,
+                genre: "Action, Adventure, Sci-Fi",
+                description: "Political involvement in the Avengers' affairs causes a rift between Captain America and Iron Man.",
+                image: "https://m.media-amazon.com/images/M/MV5BMjQ0MTgyNjAxMV5BMl5BanBnXkFtZTgwNjUzMDkyODE@._V1_FMjpg_UX1000_.jpg",
+                director: "Anthony Russo, Joe Russo",
+                cast: ["Chris Evans", "Robert Downey Jr.", "Scarlett Johansson"]
+            },
+            {
+                title: "2001: A Space Odyssey",
+                year: 1968,
+                rating: 8.3,
+                genre: "Adventure, Sci-Fi",
+                description: "A space voyage to Jupiter turns mysterious when the ship's AI system, HAL 9000, begins to rebel.",
+                image: "https://i.etsystatic.com/12196920/r/il/c543d4/3770685753/il_fullxfull.3770685753_4sjk.jpg",
+                director: "Stanley Kubrick",
+                cast: ["Keir Dullea", "Gary Lockwood", "William Sylvester"]
+            },
+            {
+                title: "A Clockwork Orange",
+                year: 1971,
+                rating: 8.3,
+                genre: "Crime, Drama, Sci-Fi",
+                description: "In the future, a sadistic gang leader is imprisoned and volunteers for an experiment to curb his violent tendencies.",
+                image: "https://rukminim2.flixcart.com/image/850/1000/j6fcqkw0/poster/t/q/x/small-art-poster-a-clockwork-orange-hollywood-collection-movie-original-imaewuyfnxmypqyh.jpeg?q=90&crop=false",
+                director: "Stanley Kubrick",
+                cast: ["Malcolm McDowell", "Patrick Magee", "Michael Bates"]
+            },
+            {
+                title: "The Shining",
+                year: 1980,
+                rating: 8.4,
+                genre: "Drama, Horror",
+                description: "A family heads to an isolated hotel where a sinister presence influences the father into violence.",
+                image: "https://i.etsystatic.com/16821137/r/il/6b8372/2386770121/il_fullxfull.2386770121_ozbr.jpg",
+                director: "Stanley Kubrick",
+                cast: ["Jack Nicholson", "Shelley Duvall", "Danny Lloyd"]
+            },
+          {
+                title: "Inception",
+                year: 2010,
+                rating: 8.8,
+                genre: "Action, Adventure, Sci-Fi",
+                description: "A thief who enters the dreams of others to steal secrets is given a chance to have his criminal history erased if he can implant an idea into someone's mind.",
+                image: "https://m.media-amazon.com/images/I/71DwIcSgFcS.jpg",
+                director: "Christopher Nolan",
+                cast: ["Leonardo DiCaprio", "Joseph Gordon-Levitt", "Elliot Page"]
+            },
+                    ];
+
+        // Movie card template
+        function movieTemplate(movie) {
+            return `
+                <div class="movie-card" onclick="openModal('${movie.title}')">
+                    <img src="${movie.image}" class="movie-poster" alt="${movie.title}">
+                    <div class="movie-info">
+                        <h3 class="movie-title">${movie.title}</h3>
+                        <div class="movie-rating">
+                            ★ ${movie.rating}
+                            <span class="movie-year">${movie.year}</span>
+                        </div>
+                        <div class="movie-actions">
+                            <button class="btn btn-primary">Add to Watchlist</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Modal functions
+        function openModal(title) {
+            const movie = movies.find(m => m.title === title);
+            const modalContent = `
+                <h2>${movie.title} (${movie.year})</h2>
+                <div class="modal-details">
+                    <img src="${movie.image}" style="max-width: 300px">
+                    <div>
+                        <p><strong>Director:</strong> ${movie.director}</p>
+                        <p><strong>Cast:</strong> ${movie.cast.join(', ')}</p>
+                        <p>${movie.description}</p>
+                        <div class="user-rating">
+                            <h3>Your Rating:</h3>
+                            <div class="stars">
+                                ${[1,2,3,4,5].map(i => 
+                                    `<span class="star" data-rating="${i}" onclick="rateMovie('${movie.title}', ${i})">★</span>`
+                                ).join('')}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('modalContent').innerHTML = modalContent;
+            document.getElementById('movieModal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('movieModal').style.display = 'none';
+        }
+
+        // Rating system
+        function rateMovie(title, rating) {
+            const movie = movies.find(m => m.title === title);
+            movie.userRating = rating;
+            localStorage.setItem(title, rating);
+            updateStars();
+        }
+
+        // Filter and sort functionality
+        function updateMovies() {
+            const searchTerm = document.getElementById('search').value.toLowerCase();
+            const sortBy = document.getElementById('sort').value;
+            
+            let filtered = movies.filter(movie => 
+                movie.title.toLowerCase().includes(searchTerm) ||
+                movie.genre.toLowerCase().includes(searchTerm) ||
+                movie.cast.some(actor => actor.toLowerCase().includes(searchTerm))
+            );
+
+            filtered.sort((a, b) => {
+                if (sortBy === 'rating') return b.rating - a.rating;
+                if (sortBy === 'title') return a.title.localeCompare(b.title);
+                if (sortBy === 'year') return b.year - a.year;
+            });
+
+            document.getElementById('movieContainer').innerHTML = 
+                filtered.map(movieTemplate).join('');
+        }
+
+        // Event listeners
+        document.getElementById('search').addEventListener('input', updateMovies);
+        document.getElementById('sort').addEventListener('change', updateMovies);
+
+        // Initial load
+        updateMovies();
+    </script>
+</body>
+</html>
